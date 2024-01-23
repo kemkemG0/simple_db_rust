@@ -1,14 +1,21 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
-use crate::file::file_manager::FileManager;
+use crate::{
+    file::file_manager::FileManager,
+    log::log_manager::{self, LogManager},
+};
 pub struct SimpleDB {
-    file_manager: FileManager,
+    file_manager: Arc<FileManager>,
+    log_manager: LogManager,
 }
 
 impl SimpleDB {
     pub fn new(db_dir: String, block_size: usize, buffer_size: u16) -> Self {
+        let file_manager = Arc::new(FileManager::new(PathBuf::from(db_dir), block_size));
+        let log_manager = LogManager::new(file_manager.clone(), String::from("simpledb.log"));
         Self {
-            file_manager: FileManager::new(PathBuf::from(db_dir), block_size),
+            file_manager,
+            log_manager,
         }
     }
     pub fn file_manager(&self) -> &FileManager {
@@ -24,8 +31,8 @@ mod tests {
             file::{block_id::BlockId, page::Page},
         };
         #[test]
-        fn test_simple_db() {
-            let db = SimpleDB::new(String::from("fileTest"), 400, 8);
+        fn test_file() {
+            let db = SimpleDB::new(String::from("./.generate/file"), 400, 8);
             let fm = db.file_manager();
             assert_eq!(fm.block_size(), 400);
             let block_id = BlockId::new(String::from("test_file"), 2);

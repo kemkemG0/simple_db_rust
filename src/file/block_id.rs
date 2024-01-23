@@ -73,3 +73,13 @@ mod tests {
         assert!(block_id != block_id5);
     }
 }
+
+// implement clone for BlockId
+impl Clone for BlockId {
+    fn clone(&self) -> Self {
+        BlockId {
+            filename: self.filename.clone(),
+            blk_num: self.blk_num,
+        }
+    }
+}

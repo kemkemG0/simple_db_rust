@@ -1,6 +1,6 @@
 mod app;
 mod file;
-mod logging;
+mod log;
 
 fn main() {
     println!("Hello, world!");

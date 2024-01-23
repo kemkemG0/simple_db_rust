@@ -1,11 +1,14 @@
-use std::{mem::size_of, sync::Mutex};
+use std::{
+    mem::size_of,
+    sync::{Arc, Mutex},
+};
 
-use crate::file::{self, block_id::BlockId, file_manager::FileManager, page::Page};
+use crate::file::{block_id::BlockId, file_manager::FileManager, page::Page};
 
 use super::log_iterator::LogIterator;
 
 pub struct LogManager {
-    file_manager: FileManager,
+    file_manager: Arc<FileManager>,
     log_file: String,
     log_page: Page,
     current_block: BlockId,
@@ -16,12 +19,12 @@ pub struct LogManager {
 }
 
 impl LogManager {
-    pub fn new(mut file_manager: FileManager, log_file: String) -> Self {
+    pub fn new(file_manager: Arc<FileManager>, log_file: String) -> Self {
         let mut log_page = Page::new(file_manager.block_size());
         let log_size = file_manager.length(log_file.clone());
         let current_block = {
             if log_size == 0 {
-                _append_new_block(&mut file_manager, &log_file, &mut log_page)
+                _append_new_block(&file_manager, &log_file, &mut log_page)
             } else {
                 let current_block = BlockId::new(log_file.clone(), log_size - 1);
                 file_manager.read(&current_block, &mut log_page).unwrap();
@@ -38,17 +41,33 @@ impl LogManager {
             mutex: Mutex::new(()),
         }
     }
+
+    /**
+     * flushes the log to disk, ensuring lsn records are persisted to disk.
+     * @param lsn the log sequence number that must be written to disk
+     */
     pub fn flush(&mut self, lsn: u32) {
         if lsn >= self.latest_saved_lsn {
             self._flush()
         }
     }
+
+    /**
+     * returns an iterator for the log records,
+     * which will be returned in reverse order starting with the most recent.
+     */
     pub fn iterator(&mut self) -> LogIterator {
         self._flush();
-        LogIterator::new(&mut self.file_manager, &mut self.current_block)
+        LogIterator::new(&mut self.file_manager, self.current_block.clone())
     }
 
+    /**
+     * add a record to the log and returns its log sequence number.
+     * appeding a record to log does not guarantee that it is immediately written to disk.
+     * @param log_record the log record to be added
+     */
     pub fn append(&mut self, log_record: &Vec<u8>) -> u32 {
+        // offset of the most recently added log record
         let mut boundary = self.log_page.get_int(0);
         let bytes_needed = (log_record.len() + size_of::<u32>()) as u32;
 
@@ -89,13 +108,23 @@ impl LogManager {
     }
 }
 
-fn _append_new_block(
-    file_manager: &mut FileManager,
-    log_file: &str,
-    log_page: &mut Page,
-) -> BlockId {
+fn _append_new_block(file_manager: &FileManager, log_file: &str, log_page: &mut Page) -> BlockId {
     let block_id = file_manager.append(String::from(log_file)).unwrap();
     log_page.set_int(0, file_manager.block_size() as u32);
-    file_manager.write(&block_id, log_page);
+    file_manager.write(&block_id, log_page).unwrap();
     block_id
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use crate::{
+//         app::simple_db::SimpleDB,
+//         file::{block_id::BlockId, page::Page},
+//         logging::log_manager::LogManager,
+//     };
+//     #[test]
+//     fn test_log_manager() {
+//         let db = SimpleDB::new(String::from("./.generated/log_manager"), 400, 8);
+//         let mut lm = db.log_manager();
+//     }
+// }
