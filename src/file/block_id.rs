@@ -35,12 +35,41 @@ impl BlockId {
 
 impl fmt::Display for BlockId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "file_name: {}, block: {}", self.filename, self.blk_num)
+        write!(
+            f,
+            "[file_name]: {}, [block]: {}",
+            self.filename, self.blk_num
+        )
     }
 }
 
 impl PartialEq for BlockId {
     fn eq(&self, other: &Self) -> bool {
         self.filename == other.filename && self.blk_num == other.blk_num
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_block_id() {
+        let block_id = BlockId::new("test".to_string(), 1);
+        assert_eq!(block_id.filename(), "test");
+        assert_eq!(block_id.number(), 1);
+        assert_eq!(block_id.to_string(), "[file_name]: test, [block]: 1");
+
+        let block_id2 = BlockId::new("test".to_string(), 1);
+        assert!(block_id == block_id2);
+
+        let block_id3 = BlockId::new("test".to_string(), 2);
+        assert!(block_id != block_id3);
+
+        let block_id4 = BlockId::new("test2".to_string(), 1);
+        assert!(block_id != block_id4);
+
+        let block_id5 = BlockId::new("test2".to_string(), 2);
+        assert!(block_id != block_id5);
     }
 }
