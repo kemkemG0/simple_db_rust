@@ -63,4 +63,8 @@ impl Page {
     pub fn max_length(strlen: usize) -> usize {
         size_of::<u32>() + strlen * size_of::<u8>()
     }
+
+    pub fn contents(&self) -> &[u8] {
+        &self.byte_buffer
+    }
 }

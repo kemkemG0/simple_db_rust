@@ -7,11 +7,11 @@ use std::{
 
 pub struct BlockId {
     filename: String,
-    blk_num: u32,
+    blk_num: u64,
 }
 
 impl BlockId {
-    pub fn new(filename: String, blk_num: u32) -> BlockId {
+    pub fn new(filename: String, blk_num: u64) -> BlockId {
         BlockId { filename, blk_num }
     }
 
@@ -19,7 +19,7 @@ impl BlockId {
         self.filename.clone()
     }
 
-    pub fn number(&self) -> u32 {
+    pub fn number(&self) -> u64 {
         self.blk_num
     }
 
