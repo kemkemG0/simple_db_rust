@@ -54,7 +54,7 @@ impl FileManager {
         }
     }
 
-    pub fn read(&self, blk: &BlockId, p: &mut Page) -> Result<(), io::Error> {
+    pub fn read(&self, blk: &BlockId, page: &mut Page) -> Result<(), io::Error> {
         let file_io = self.getFile(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
@@ -62,20 +62,21 @@ impl FileManager {
         let mut tmp_buff = vec![0; self.block_size];
         let read_len = file_io.read(&mut tmp_buff)?;
         if read_len == self.block_size {
-            p.byte_buffer = tmp_buff;
+            page.byte_buffer = tmp_buff;
         }
         Ok(())
     }
-    pub fn write(&self, blk: &BlockId, p: &mut Page) -> Result<(), io::Error> {
+    pub fn write(&self, blk: &BlockId, page: &mut Page) -> Result<(), io::Error> {
         let file_io = self.getFile(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
         file_io.seek(io::SeekFrom::Start(offset))?;
-        file_io.write_all(&p.byte_buffer[0..self.block_size()])?;
+        file_io.write_all(&page.byte_buffer[0..self.block_size()])?;
         file_io.flush()?;
         Ok(())
     }
-    pub fn append(&self, filename: String, p: &mut Page) -> Result<BlockId, io::Error> {
+
+    pub fn append(&self, filename: String) -> Result<BlockId, io::Error> {
         let new_blk_num = self.length(filename.clone());
         let blk = BlockId::new(filename, new_blk_num);
         let file_io = self.getFile(blk.filename())?;
