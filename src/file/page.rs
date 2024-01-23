@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 pub struct Page {
-    byte_buffer: Vec<u8>,
+    pub byte_buffer: Vec<u8>,
 }
 
 impl Page {
@@ -66,5 +66,31 @@ impl Page {
 
     pub fn contents(&self) -> &[u8] {
         &self.byte_buffer
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_set_get_string() {
+        // Test that we can set and get a string
+        let mut page = Page::new(4096);
+        let s = "Hello, world!".to_string();
+        page.set_string(0, s.clone());
+        assert_eq!(page.get_string(0), s);
+
+        // Test with larger string
+        page.set_string(
+            100,
+            "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string"
+                .to_string(),
+        );
+        assert_eq!(
+            page.get_string(100),
+            "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string"
+                .to_string()
+        );
     }
 }

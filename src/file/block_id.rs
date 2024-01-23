@@ -28,6 +28,9 @@ impl BlockId {
         format!("{}", self).hash(&mut hasher);
         hasher.finish()
     }
+    pub fn isNull(&self) -> bool {
+        self.filename().is_empty()
+    }
 }
 
 impl fmt::Display for BlockId {
