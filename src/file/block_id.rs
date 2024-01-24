@@ -4,7 +4,7 @@ use std::{
     fmt,
     hash::{Hash, Hasher},
 };
-
+#[derive(Debug)]
 pub struct BlockId {
     filename: String,
     blk_num: u64,

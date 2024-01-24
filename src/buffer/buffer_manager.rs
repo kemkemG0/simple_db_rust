@@ -1,13 +1,12 @@
+use crate::{
+    file::{block_id::BlockId, file_manager::FileManager},
+    log::log_manager::LogManager,
+};
 use std::{
     io::Error,
     sync::{Arc, Mutex},
     thread::{current, park_timeout},
     time::SystemTimeError,
-};
-
-use crate::{
-    file::{block_id::BlockId, file_manager::FileManager},
-    log::log_manager::LogManager,
 };
 
 use super::buffer::Buffer;
@@ -34,6 +33,7 @@ impl From<Error> for BufferAbortError {
 pub struct BufferManager {
     buffer_pool: Vec<Buffer>,
     num_available: u16,
+    max_time: u128,
 }
 
 impl BufferManager {
@@ -50,6 +50,7 @@ impl BufferManager {
         Self {
             buffer_pool,
             num_available: num_buffers,
+            max_time: Self::MAX_TIME,
         }
     }
 
@@ -81,7 +82,7 @@ impl BufferManager {
         let mut idx = self.try_to_pin(blk)?;
         while idx.is_none() && !self.waiting_too_long(time_stamp)? {
             // wait for a unpinned buffer
-            park_timeout(std::time::Duration::from_millis(Self::MAX_TIME as u64));
+            park_timeout(std::time::Duration::from_millis(self.max_time as u64));
             idx = self.try_to_pin(blk)?;
         }
         match idx {
@@ -130,11 +131,15 @@ impl BufferManager {
     }
 
     pub fn waiting_too_long(&self, start_time: u128) -> Result<bool, SystemTimeError> {
-        Ok(now_mill_sec()? - start_time > Self::MAX_TIME)
+        Ok(now_mill_sec()? - start_time > self.max_time)
     }
 
     pub fn get_buffer(&mut self, idx: usize) -> &mut Buffer {
         &mut self.buffer_pool[idx]
+    }
+
+    pub fn set_max_time(&mut self, max_time_m_sec: u128) {
+        self.max_time = max_time_m_sec;
     }
 }
 

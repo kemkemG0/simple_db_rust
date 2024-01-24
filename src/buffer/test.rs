@@ -2,9 +2,8 @@
 mod tests {
 
     mod buffer_test {
-        use std::fs;
-
         use crate::{app::simple_db::SimpleDB, file::block_id::BlockId};
+        use std::fs;
 
         #[test]
         fn test_buffer() {
@@ -42,5 +41,52 @@ mod tests {
         }
     }
 
-    mod buffer_manager_test {}
+    mod buffer_manager_test {
+        use crate::{app::simple_db::SimpleDB, file::block_id::BlockId};
+        use std::fs;
+
+        #[test]
+        fn test_buffer_manager() {
+            let db = SimpleDB::new("test_buffer_manager", 400, 3).unwrap();
+            let binding = db.buffer_manager();
+            let mut bm = binding.lock().unwrap();
+            let mut buffs_idx = Vec::with_capacity(6);
+
+            bm.set_max_time(10);
+
+            buffs_idx.push(bm.pin(&BlockId::new("testfile", 0)).unwrap());
+            buffs_idx.push(bm.pin(&BlockId::new("testfile", 1)).unwrap());
+            buffs_idx.push(bm.pin(&BlockId::new("testfile", 2)).unwrap());
+            assert_eq!(bm.available(), 0);
+            bm.unpin(buffs_idx[1]);
+            buffs_idx[1] = 999;
+
+            assert_eq!(bm.available(), 1);
+            buffs_idx.push(bm.pin(&BlockId::new("testfile", 0)).unwrap());
+            assert_eq!(bm.available(), 1);
+            buffs_idx.push(bm.pin(&BlockId::new("testfile", 1)).unwrap());
+            assert_eq!(bm.available(), 0);
+
+            assert!(bm.pin(&BlockId::new("testfile", 3)).is_err());
+
+            bm.unpin(buffs_idx[2]);
+            buffs_idx[2] = 999;
+            assert_eq!(bm.available(), 1);
+            buffs_idx.push(bm.pin(&BlockId::new("testfile", 3)).unwrap());
+
+            let expected = vec![
+                (0, BlockId::new("testfile", 0)),
+                (3, BlockId::new("testfile", 0)),
+                (4, BlockId::new("testfile", 1)),
+                (5, BlockId::new("testfile", 3)),
+            ];
+
+            for (idx, block_id) in expected.iter() {
+                let buffer = bm.get_buffer(buffs_idx[*idx]);
+                assert_eq!(buffer.block().unwrap(), block_id);
+            }
+
+            fs::remove_dir_all("test_buffer_manager").unwrap();
+        }
+    }
 }

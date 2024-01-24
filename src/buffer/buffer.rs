@@ -1,11 +1,10 @@
-use std::{
-    io::Error,
-    sync::{Arc, Mutex},
-};
-
 use crate::{
     file::{self, block_id::BlockId, file_manager::FileManager, page::Page},
     log::log_manager::LogManager,
+};
+use std::{
+    io::Error,
+    sync::{Arc, Mutex},
 };
 
 pub struct Buffer {
