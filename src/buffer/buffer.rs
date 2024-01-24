@@ -1,5 +1,5 @@
 use crate::{
-    file::{self, block_id::BlockId, file_manager::FileManager, page::Page},
+    file::{block_id::BlockId, file_manager::FileManager, page::Page},
     log::log_manager::LogManager,
 };
 use std::{

@@ -1,4 +1,4 @@
-use std::{mem::size_of, str::Utf8Error, string::FromUtf8Error};
+use std::{mem::size_of, string::FromUtf8Error};
 
 pub struct Page {
     pub byte_buffer: Vec<u8>,

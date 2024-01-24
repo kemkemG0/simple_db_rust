@@ -1,7 +1,7 @@
 use std::{
     io::Error,
     mem::size_of,
-    sync::{Arc, Mutex},
+    sync::{Arc},
 };
 
 use crate::file::{block_id::BlockId, file_manager::FileManager, page::Page};
