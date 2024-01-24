@@ -33,13 +33,13 @@ impl Page {
 
     pub fn get_bytes(&self, offset: usize) -> Vec<u8> {
         let len = self.get_int(offset);
-        Vec::from(
-            &self.byte_buffer[offset + len as usize..offset + len as usize + size_of::<u32>()],
-        )
+        self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
+            .to_vec()
     }
 
     pub fn get_string(&self, offset: usize) -> String {
         let len = self.get_int(offset);
+        println!("len: {}", len);
         match String::from_utf8(
             self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
                 .to_vec(),

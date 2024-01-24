@@ -58,7 +58,7 @@ impl LogManager {
      */
     pub fn iterator(&mut self) -> LogIterator {
         self._flush();
-        LogIterator::new(&mut self.file_manager, self.current_block.clone())
+        LogIterator::new(self.file_manager.clone(), &self.current_block)
     }
 
     /**
@@ -68,19 +68,21 @@ impl LogManager {
      */
     pub fn append(&mut self, log_record: &Vec<u8>) -> u32 {
         // offset of the most recently added log record
-        let mut boundary = self.log_page.get_int(0);
-        let bytes_needed = (log_record.len() + size_of::<u32>()) as u32;
+        let mut boundary = self.log_page.get_int(0) as i32;
+        let bytes_needed = (log_record.len() + size_of::<u32>()) as i32;
 
-        if (boundary - bytes_needed) < size_of::<u32>() as u32 {
+        println!("boundary: {}, bytes_needed: {}", boundary, bytes_needed);
+
+        if (boundary - bytes_needed) < (size_of::<u32>() as i32) {
             // it doesn't fit in the current block so move to the next one
             self._flush();
             self.current_block = self.append_new_block();
-            boundary = self.log_page.get_int(0);
+            boundary = self.log_page.get_int(0) as i32;
         }
 
         let rec_offset = boundary - bytes_needed;
         self.log_page.set_bytes(rec_offset as usize, log_record);
-        self.log_page.set_int(0, rec_offset);
+        self.log_page.set_int(0, rec_offset as u32);
 
         self.latest_lsn += 1;
         self.latest_lsn
@@ -110,6 +112,8 @@ impl LogManager {
 
 fn _append_new_block(file_manager: &FileManager, log_file: &str, log_page: &mut Page) -> BlockId {
     let block_id = file_manager.append(String::from(log_file)).unwrap();
+    // Use the first four bytes as boundary, which is the offset of the most recently added log record
+    // if the block_size is 400, then the boundary is 400 at the beginning
     log_page.set_int(0, file_manager.block_size() as u32);
     file_manager.write(&block_id, log_page).unwrap();
     block_id
