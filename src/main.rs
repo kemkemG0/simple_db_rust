@@ -1,4 +1,5 @@
 mod app;
+mod buffer;
 mod file;
 mod log;
 

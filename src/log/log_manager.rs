@@ -16,7 +16,6 @@ pub struct LogManager {
     // lsn: log sequence number
     latest_lsn: u32,
     latest_saved_lsn: u32,
-    mutex: Mutex<()>,
 }
 
 impl LogManager {
@@ -42,7 +41,6 @@ impl LogManager {
             current_block,
             latest_lsn: 0,
             latest_saved_lsn: 0,
-            mutex: Mutex::new(()),
         })
     }
 
@@ -96,7 +94,6 @@ impl LogManager {
     }
 
     fn append_new_block(&mut self) -> Result<BlockId, Error> {
-        let _guard = self.mutex.lock().unwrap();
         _append_new_block(
             &mut self.file_manager,
             &self.log_file.clone(),
@@ -105,7 +102,6 @@ impl LogManager {
     }
 
     fn _flush(&mut self) -> Result<(), Error> {
-        let _guard = self.mutex.lock().unwrap();
         self.file_manager
             .write(&self.current_block, &mut self.log_page)?;
         self.latest_saved_lsn = self.latest_lsn;
