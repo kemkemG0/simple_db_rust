@@ -13,12 +13,13 @@ mod tests {
     fn test_log() {
         let db = SimpleDB::new("./test_log/log", 400, 8);
         let lm = db.log_manager();
-        create_records(lm.clone(), 1, 35);
-        assert_log_records(lm.clone(), (1..=35).rev().collect());
+        const NUM: u32 = 350;
+        create_records(lm.clone(), 1, NUM);
+        assert_log_records(lm.clone(), (1..=NUM).rev().collect());
 
-        create_records(lm.clone(), 36, 70);
-        lm.lock().unwrap().flush(65);
-        assert_log_records(lm.clone(), (1..=70).rev().collect());
+        create_records(lm.clone(), NUM + 1, NUM * 2);
+        lm.lock().unwrap().flush(NUM - 10);
+        assert_log_records(lm.clone(), (1..=NUM * 2).rev().collect());
 
         fs::remove_dir_all("test_log").unwrap();
     }
