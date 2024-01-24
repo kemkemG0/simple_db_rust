@@ -52,7 +52,7 @@ impl FileManager {
     }
 
     pub fn read(&self, blk: &BlockId, page: &mut Page) -> Result<(), Error> {
-        let file_io = self.getFile(blk.filename())?;
+        let file_io = self.get_file(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
         file_io.seek(SeekFrom::Start(offset))?;
@@ -64,7 +64,7 @@ impl FileManager {
         Ok(())
     }
     pub fn write(&self, blk: &BlockId, page: &mut Page) -> Result<(), Error> {
-        let file_io = self.getFile(blk.filename())?;
+        let file_io = self.get_file(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
         file_io.seek(SeekFrom::Start(offset))?;
@@ -76,7 +76,7 @@ impl FileManager {
     pub fn append(&self, filename: &str) -> Result<BlockId, Error> {
         let new_blk_num = self.length(filename)?;
         let blk = BlockId::new(filename, new_blk_num);
-        let file_io = self.getFile(blk.filename())?;
+        let file_io = self.get_file(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let b = vec![0; self.block_size()];
         file_io.seek(SeekFrom::Start(blk.number() * self.block_size() as u64))?;
@@ -88,7 +88,7 @@ impl FileManager {
         self.is_new
     }
     pub fn length(&self, file_name: &str) -> Result<u64, Error> {
-        let file_io = self.getFile(file_name)?;
+        let file_io = self.get_file(file_name)?;
         let file_io = file_io.lock().unwrap();
         let metadata = file_io.metadata().unwrap();
         Ok(metadata.len() / self.block_size as u64)
@@ -98,7 +98,7 @@ impl FileManager {
         self.block_size
     }
 
-    fn getFile(&self, filename: &str) -> Result<Arc<Mutex<fs::File>>, Error> {
+    fn get_file(&self, filename: &str) -> Result<Arc<Mutex<fs::File>>, Error> {
         let path = self.db_directory.join(filename);
         let mut open_files = self.open_files.lock().unwrap();
         if let Some(file) = open_files.get(&path) {

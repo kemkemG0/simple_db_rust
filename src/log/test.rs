@@ -18,7 +18,7 @@ mod tests {
         assert_log_records(lm.clone(), (1..=NUM).rev().collect());
 
         create_records(lm.clone(), NUM + 1, NUM * 2);
-        lm.lock().unwrap().flush(NUM - 10);
+        lm.lock().unwrap().flush(NUM - 10).unwrap();
         assert_log_records(lm.clone(), (1..=NUM * 2).rev().collect());
 
         fs::remove_dir_all("test_log").unwrap();
@@ -26,7 +26,7 @@ mod tests {
 
     fn assert_log_records(lm: Arc<Mutex<LogManager>>, expected: Vec<u32>) {
         let mut lm = lm.lock().unwrap();
-        let itr = lm.iterator();
+        let itr = lm.iterator().unwrap();
 
         for (rec, exp) in zip(itr, expected) {
             let page = Page::from_bytes(&rec);

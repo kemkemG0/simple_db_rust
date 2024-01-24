@@ -14,7 +14,7 @@ pub struct LogIterator {
 }
 
 impl LogIterator {
-    pub fn new(file_manager: Arc<FileManager>, current_block: &BlockId) -> Self {
+    pub fn new(file_manager: Arc<FileManager>, current_block: &BlockId) -> Result<Self, Error> {
         let page = Page::new(file_manager.block_size());
         let mut l = Self {
             file_manager,
@@ -23,8 +23,8 @@ impl LogIterator {
             current_pos: 0,
             boundary: 0,
         };
-        l.move_to_block(current_block);
-        l
+        l.move_to_block(current_block)?;
+        Ok(l)
     }
     pub fn has_next(&self) -> bool {
         (self.current_pos < self.file_manager.block_size() as u32) || self.block_id.number() > 0
@@ -46,7 +46,7 @@ impl Iterator for LogIterator {
         }
         if self.current_pos == self.file_manager.block_size() as u32 {
             self.block_id = BlockId::new(self.block_id.filename(), self.block_id.number() - 1);
-            self.move_to_block(&self.block_id.clone());
+            self.move_to_block(&self.block_id.clone()).ok();
         }
         let rec = self.page.get_bytes(self.current_pos as usize);
         self.current_pos += rec.len() as u32 + size_of::<u32>() as u32;

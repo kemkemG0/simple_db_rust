@@ -58,14 +58,15 @@ impl BufferManager {
         self.num_available
     }
 
-    pub fn flush_all(&mut self, txnum: u32) {
+    pub fn flush_all(&mut self, txnum: u32) -> Result<(), Error> {
         for buffer in self.buffer_pool.iter_mut() {
             if let Some(t) = buffer.modifing_tx_num() {
                 if t == txnum {
-                    buffer.flush();
+                    buffer.flush()?;
                 }
             }
         }
+        Ok(())
     }
 
     pub fn unpin(&mut self, idx: usize) {

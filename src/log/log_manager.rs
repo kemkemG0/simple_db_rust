@@ -1,8 +1,4 @@
-use std::{
-    io::Error,
-    mem::size_of,
-    sync::{Arc},
-};
+use std::{io::Error, mem::size_of, sync::Arc};
 
 use crate::file::{block_id::BlockId, file_manager::FileManager, page::Page};
 
@@ -24,7 +20,7 @@ impl LogManager {
         let log_size = file_manager.length(log_file)?;
         let current_block = {
             if log_size == 0 {
-                match _append_new_block(&file_manager, &log_file, &mut log_page) {
+                match _append_new_block(&file_manager, log_file, &mut log_page) {
                     Ok(block_id) => block_id,
                     Err(e) => return Err(e),
                 }
@@ -59,8 +55,8 @@ impl LogManager {
      * returns an iterator for the log records,
      * which will be returned in reverse order starting with the most recent.
      */
-    pub fn iterator(&mut self) -> LogIterator {
-        self._flush();
+    pub fn iterator(&mut self) -> Result<LogIterator, Error> {
+        self._flush()?;
         LogIterator::new(self.file_manager.clone(), &self.current_block)
     }
 
@@ -76,7 +72,7 @@ impl LogManager {
 
         if (boundary - bytes_needed) < (size_of::<u32>() as i32) {
             // it doesn't fit in the current block so move to the next one
-            self._flush();
+            self._flush()?;
             self.current_block = self.append_new_block()?;
             boundary = self.log_page.get_int(0) as i32;
         }
@@ -95,7 +91,7 @@ impl LogManager {
 
     fn append_new_block(&mut self) -> Result<BlockId, Error> {
         _append_new_block(
-            &mut self.file_manager,
+            &self.file_manager,
             &self.log_file.clone(),
             &mut self.log_page,
         )
