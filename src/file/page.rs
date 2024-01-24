@@ -1,4 +1,4 @@
-use std::mem::size_of;
+use std::{mem::size_of, str::Utf8Error, string::FromUtf8Error};
 
 pub struct Page {
     pub byte_buffer: Vec<u8>,
@@ -36,15 +36,12 @@ impl Page {
         &self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
     }
 
-    pub fn get_string(&self, offset: usize) -> String {
+    pub fn get_string(&self, offset: usize) -> Result<String,FromUtf8Error> {
         let len = self.get_int(offset);
-        match String::from_utf8(
+        String::from_utf8(
             self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
                 .to_vec(),
-        ) {
-            Ok(s) => s,
-            Err(_) => panic!("Invalid UTF-8 sequence"),
-        }
+        )
     }
 
     pub fn set_bytes(&mut self, offset: usize, b: &[u8]) {
@@ -77,7 +74,7 @@ mod tests {
         let mut page = Page::new(4096);
         let s = "Hello, world!";
         page.set_string(0, s);
-        assert_eq!(page.get_string(0), s);
+        assert_eq!(page.get_string(0).unwrap(), s);
 
         // Test with larger string
         page.set_string(
@@ -85,7 +82,7 @@ mod tests {
             "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string",
         );
         assert_eq!(
-            page.get_string(100),
+            page.get_string(100).unwrap(),
             "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string"
                 
         );

@@ -9,7 +9,7 @@ mod tests {
     };
     #[test]
     fn test_file() {
-        let db = SimpleDB::new("./test_file/file", 400, 8);
+        let db = SimpleDB::new("./test_file/file", 400, 8).unwrap();
         let fm = db.file_manager();
         assert_eq!(fm.block_size(), 400);
         let block_id = BlockId::new("test_file", 2);
@@ -17,7 +17,7 @@ mod tests {
         let pos1 = 88;
         let content = "abcdefghijklm";
         p1.set_string(pos1, content);
-        assert_eq!(p1.get_string(pos1), content);
+        assert_eq!(p1.get_string(pos1).unwrap(), content);
         let size = Page::max_length(content.len());
         let pos2 = pos1 + size;
 
@@ -28,7 +28,7 @@ mod tests {
         let mut p2 = Page::new(fm.block_size());
         fm.read(&block_id, &mut p2).unwrap();
 
-        assert_eq!(p2.get_string(pos1), content);
+        assert_eq!(p2.get_string(pos1).unwrap(), content);
         assert_eq!(p2.get_int(pos2), 345);
 
         fs::remove_dir_all("test_file").unwrap();

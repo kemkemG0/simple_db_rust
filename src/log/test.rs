@@ -11,7 +11,7 @@ mod tests {
 
     #[test]
     fn test_log() {
-        let db = SimpleDB::new("./test_log/log", 400, 8);
+        let db = SimpleDB::new("./test_log/log", 400, 8).unwrap();
         let lm = db.log_manager();
         const NUM: u32 = 350;
         create_records(lm.clone(), 1, NUM);
@@ -30,7 +30,7 @@ mod tests {
 
         for (rec, exp) in zip(itr, expected) {
             let page = Page::from_bytes(&rec);
-            let s = page.get_string(0);
+            let s = page.get_string(0).unwrap();
             let n = Page::max_length(s.len());
             let val = page.get_int(n);
 
@@ -43,7 +43,7 @@ mod tests {
         for i in start..=end {
             let rec_string = format!("record: {}", i);
             let rec = create_log_records(&rec_string, i + 100);
-            let lsn = lm.lock().unwrap().append(&rec);
+            let lsn = lm.lock().unwrap().append(&rec).unwrap();
 
             assert_eq!(lsn, i)
         }

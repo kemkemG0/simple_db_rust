@@ -1,4 +1,5 @@
 use std::{
+    io::Error,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -10,16 +11,16 @@ pub struct SimpleDB {
 }
 
 impl SimpleDB {
-    pub fn new(db_dir: &str, block_size: usize, buffer_size: u16) -> Self {
-        let file_manager = Arc::new(FileManager::new(PathBuf::from(db_dir), block_size));
+    pub fn new(db_dir: &str, block_size: usize, buffer_size: u16) -> Result<Self, Error> {
+        let file_manager = Arc::new(FileManager::new(PathBuf::from(db_dir), block_size)?);
         let log_manager = Arc::new(Mutex::new(LogManager::new(
             file_manager.clone(),
             "simpledb.log",
-        )));
-        Self {
+        )?));
+        Ok(Self {
             file_manager,
             log_manager,
-        }
+        })
     }
     pub fn file_manager(&self) -> Arc<FileManager> {
         self.file_manager.clone()

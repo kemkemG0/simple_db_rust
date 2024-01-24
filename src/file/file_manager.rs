@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::fs::OpenOptions;
-use std::io::{Read, Seek, Write};
+use std::io::{Error, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::{fs, io, path};
+use std::{fs, path};
 
 use crate::file::block_id::BlockId;
 use crate::file::page::Page;
@@ -16,13 +16,10 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    pub fn new(db_directory: path::PathBuf, block_size: usize) -> Self {
+    pub fn new(db_directory: path::PathBuf, block_size: usize) -> Result<Self, Error> {
         let is_new = !db_directory.exists();
         if is_new {
-            match fs::create_dir_all(&db_directory) {
-                Ok(_) => {}
-                Err(e) => panic!("cannot create directory: {}", e),
-            }
+            fs::create_dir_all(&db_directory)?;
         }
 
         // remove any leftover temp tables
@@ -46,19 +43,19 @@ impl FileManager {
             Err(e) => panic!("cannot read directory: {}", e),
         }
 
-        Self {
+        Ok(Self {
             db_directory,
             block_size,
             is_new,
             open_files: Mutex::new(HashMap::new()),
-        }
+        })
     }
 
-    pub fn read(&self, blk: &BlockId, page: &mut Page) -> Result<(), io::Error> {
-        let file_io = self.get_file(blk.filename())?;
+    pub fn read(&self, blk: &BlockId, page: &mut Page) -> Result<(), Error> {
+        let file_io = self.getFile(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
-        file_io.seek(io::SeekFrom::Start(offset))?;
+        file_io.seek(SeekFrom::Start(offset))?;
         let mut tmp_buff = vec![0; self.block_size];
         let read_len = file_io.read(&mut tmp_buff)?;
         if read_len == self.block_size {
@@ -66,23 +63,23 @@ impl FileManager {
         }
         Ok(())
     }
-    pub fn write(&self, blk: &BlockId, page: &mut Page) -> Result<(), io::Error> {
-        let file_io = self.get_file(blk.filename())?;
+    pub fn write(&self, blk: &BlockId, page: &mut Page) -> Result<(), Error> {
+        let file_io = self.getFile(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
-        file_io.seek(io::SeekFrom::Start(offset))?;
+        file_io.seek(SeekFrom::Start(offset))?;
         file_io.write_all(&page.byte_buffer[0..self.block_size()])?;
         file_io.flush()?;
         Ok(())
     }
 
-    pub fn append(&self, filename: &str) -> Result<BlockId, io::Error> {
-        let new_blk_num = self.length(filename);
+    pub fn append(&self, filename: &str) -> Result<BlockId, Error> {
+        let new_blk_num = self.length(filename)?;
         let blk = BlockId::new(filename, new_blk_num);
-        let file_io = self.get_file(blk.filename())?;
+        let file_io = self.getFile(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let b = vec![0; self.block_size()];
-        file_io.seek(io::SeekFrom::Start(blk.number() * self.block_size() as u64))?;
+        file_io.seek(SeekFrom::Start(blk.number() * self.block_size() as u64))?;
         file_io.write_all(&b)?;
         file_io.flush()?;
         Ok(blk)
@@ -90,17 +87,18 @@ impl FileManager {
     pub fn is_new(&self) -> bool {
         self.is_new
     }
-    pub fn length(&self, file_name: &str) -> u64 {
-        let file_io = self.get_file(file_name).unwrap();
+    pub fn length(&self, file_name: &str) -> Result<u64, Error> {
+        let file_io = self.getFile(file_name)?;
         let file_io = file_io.lock().unwrap();
         let metadata = file_io.metadata().unwrap();
-        metadata.len() / self.block_size as u64
+        Ok(metadata.len() / self.block_size as u64)
     }
+
     pub fn block_size(&self) -> usize {
         self.block_size
     }
 
-    fn get_file(&self, filename: &str) -> Result<Arc<Mutex<fs::File>>, io::Error> {
+    fn getFile(&self, filename: &str) -> Result<Arc<Mutex<fs::File>>, Error> {
         let path = self.db_directory.join(filename);
         let mut open_files = self.open_files.lock().unwrap();
         if let Some(file) = open_files.get(&path) {

@@ -1,3 +1,4 @@
+use std::io::Error;
 use std::mem::size_of;
 use std::sync::Arc;
 
@@ -28,10 +29,11 @@ impl LogIterator {
     pub fn has_next(&self) -> bool {
         (self.current_pos < self.file_manager.block_size() as u32) || self.block_id.number() > 0
     }
-    fn move_to_block(&mut self, block_id: &BlockId) {
-        self.file_manager.read(block_id, &mut self.page).unwrap();
+    fn move_to_block(&mut self, block_id: &BlockId) -> Result<(), Error> {
+        self.file_manager.read(block_id, &mut self.page)?;
         self.boundary = self.page.get_int(0);
         self.current_pos = self.boundary;
+        Ok(())
     }
 }
 

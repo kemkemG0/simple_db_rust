@@ -1,4 +1,5 @@
 use std::{
+    io::Error,
     mem::size_of,
     sync::{Arc, Mutex},
 };
@@ -19,19 +20,22 @@ pub struct LogManager {
 }
 
 impl LogManager {
-    pub fn new(file_manager: Arc<FileManager>, log_file: &str) -> Self {
+    pub fn new(file_manager: Arc<FileManager>, log_file: &str) -> Result<Self, Error> {
         let mut log_page = Page::new(file_manager.block_size());
-        let log_size = file_manager.length(log_file);
+        let log_size = file_manager.length(log_file)?;
         let current_block = {
             if log_size == 0 {
-                _append_new_block(&file_manager, &log_file, &mut log_page)
+                match _append_new_block(&file_manager, &log_file, &mut log_page) {
+                    Ok(block_id) => block_id,
+                    Err(e) => return Err(e),
+                }
             } else {
                 let current_block = BlockId::new(log_file, log_size - 1);
-                file_manager.read(&current_block, &mut log_page).unwrap();
+                file_manager.read(&current_block, &mut log_page)?;
                 current_block
             }
         };
-        Self {
+        Ok(Self {
             file_manager,
             log_file: String::from(log_file),
             log_page,
@@ -39,17 +43,18 @@ impl LogManager {
             latest_lsn: 0,
             latest_saved_lsn: 0,
             mutex: Mutex::new(()),
-        }
+        })
     }
 
     /**
      * flushes the log to disk, ensuring lsn records are persisted to disk.
      * @param lsn the log sequence number that must be written to disk
      */
-    pub fn flush(&mut self, lsn: u32) {
+    pub fn flush(&mut self, lsn: u32) -> Result<(), Error> {
         if lsn >= self.latest_saved_lsn {
-            self._flush()
+            self._flush()?;
         }
+        Ok(())
     }
 
     /**
@@ -66,15 +71,15 @@ impl LogManager {
      * appeding a record to log does not guarantee that it is immediately written to disk.
      * @param log_record the log record to be added
      */
-    pub fn append(&mut self, log_record: &Vec<u8>) -> u32 {
-        // offset of the most recently added log record
+    pub fn append(&mut self, log_record: &Vec<u8>) -> Result<u32, Error> {
+        // boundary: offset of the most recently added log record
         let mut boundary = self.log_page.get_int(0) as i32;
         let bytes_needed = (log_record.len() + size_of::<u32>()) as i32;
 
         if (boundary - bytes_needed) < (size_of::<u32>() as i32) {
             // it doesn't fit in the current block so move to the next one
             self._flush();
-            self.current_block = self.append_new_block();
+            self.current_block = self.append_new_block()?;
             boundary = self.log_page.get_int(0) as i32;
         }
 
@@ -83,14 +88,14 @@ impl LogManager {
         self.log_page.set_int(0, rec_offset as u32);
 
         self.latest_lsn += 1;
-        self.latest_lsn
+        Ok(self.latest_lsn)
     }
 
     pub fn get_last_saved_lsn(&self) -> u32 {
         self.latest_saved_lsn
     }
 
-    fn append_new_block(&mut self) -> BlockId {
+    fn append_new_block(&mut self) -> Result<BlockId, Error> {
         let _guard = self.mutex.lock().unwrap();
         _append_new_block(
             &mut self.file_manager,
@@ -99,20 +104,24 @@ impl LogManager {
         )
     }
 
-    fn _flush(&mut self) {
+    fn _flush(&mut self) -> Result<(), Error> {
         let _guard = self.mutex.lock().unwrap();
         self.file_manager
-            .write(&self.current_block, &mut self.log_page)
-            .unwrap();
+            .write(&self.current_block, &mut self.log_page)?;
         self.latest_saved_lsn = self.latest_lsn;
+        Ok(())
     }
 }
 
-fn _append_new_block(file_manager: &FileManager, log_file: &str, log_page: &mut Page) -> BlockId {
-    let block_id = file_manager.append(log_file).unwrap();
+fn _append_new_block(
+    file_manager: &FileManager,
+    log_file: &str,
+    log_page: &mut Page,
+) -> Result<BlockId, Error> {
+    let block_id = file_manager.append(log_file)?;
     // Use the first four bytes as boundary, which is the offset of the most recently added log record
     // if the block_size is 400, then the boundary is 400 at the beginning
     log_page.set_int(0, file_manager.block_size() as u32);
-    file_manager.write(&block_id, log_page).unwrap();
-    block_id
+    file_manager.write(&block_id, log_page)?;
+    Ok(block_id)
 }
