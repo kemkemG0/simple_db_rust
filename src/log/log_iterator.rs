@@ -43,12 +43,11 @@ impl Iterator for LogIterator {
             return None;
         }
         if self.current_pos == self.file_manager.block_size() as u32 {
-            self.block_id =
-                BlockId::new(self.block_id.filename().clone(), self.block_id.number() - 1);
+            self.block_id = BlockId::new(self.block_id.filename(), self.block_id.number() - 1);
             self.move_to_block(&self.block_id.clone());
         }
         let rec = self.page.get_bytes(self.current_pos as usize);
         self.current_pos += rec.len() as u32 + size_of::<u32>() as u32;
-        Some(rec)
+        Some(rec.to_vec())
     }
 }

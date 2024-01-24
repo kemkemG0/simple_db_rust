@@ -31,15 +31,13 @@ impl Page {
         self.byte_buffer[offset..offset + le_bytes.len()].copy_from_slice(&le_bytes);
     }
 
-    pub fn get_bytes(&self, offset: usize) -> Vec<u8> {
+    pub fn get_bytes(&self, offset: usize) -> &[u8] {
         let len = self.get_int(offset);
-        self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
-            .to_vec()
+        &self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
     }
 
     pub fn get_string(&self, offset: usize) -> String {
         let len = self.get_int(offset);
-        println!("len: {}", len);
         match String::from_utf8(
             self.byte_buffer[offset + size_of::<u32>()..offset + size_of::<u32>() + len as usize]
                 .to_vec(),
@@ -56,7 +54,7 @@ impl Page {
             .copy_from_slice(b);
     }
 
-    pub fn set_string(&mut self, offset: usize, s: String) {
+    pub fn set_string(&mut self, offset: usize, s: &str) {
         self.set_bytes(offset, s.as_bytes())
     }
 
@@ -77,20 +75,19 @@ mod tests {
     fn test_set_get_string() {
         // Test that we can set and get a string
         let mut page = Page::new(4096);
-        let s = "Hello, world!".to_string();
-        page.set_string(0, s.clone());
+        let s = "Hello, world!";
+        page.set_string(0, s);
         assert_eq!(page.get_string(0), s);
 
         // Test with larger string
         page.set_string(
             100,
-            "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string"
-                .to_string(),
+            "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string",
         );
         assert_eq!(
             page.get_string(100),
             "Hello, world! This is a longer string.Hello, world! This is a longer string.Hello, world! This is a longer string"
-                .to_string()
+                
         );
     }
 }

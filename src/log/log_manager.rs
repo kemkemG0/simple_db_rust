@@ -19,21 +19,21 @@ pub struct LogManager {
 }
 
 impl LogManager {
-    pub fn new(file_manager: Arc<FileManager>, log_file: String) -> Self {
+    pub fn new(file_manager: Arc<FileManager>, log_file: &str) -> Self {
         let mut log_page = Page::new(file_manager.block_size());
-        let log_size = file_manager.length(log_file.clone());
+        let log_size = file_manager.length(log_file);
         let current_block = {
             if log_size == 0 {
                 _append_new_block(&file_manager, &log_file, &mut log_page)
             } else {
-                let current_block = BlockId::new(log_file.clone(), log_size - 1);
+                let current_block = BlockId::new(log_file, log_size - 1);
                 file_manager.read(&current_block, &mut log_page).unwrap();
                 current_block
             }
         };
         Self {
             file_manager,
-            log_file,
+            log_file: String::from(log_file),
             log_page,
             current_block,
             latest_lsn: 0,
@@ -71,8 +71,6 @@ impl LogManager {
         let mut boundary = self.log_page.get_int(0) as i32;
         let bytes_needed = (log_record.len() + size_of::<u32>()) as i32;
 
-        println!("boundary: {}, bytes_needed: {}", boundary, bytes_needed);
-
         if (boundary - bytes_needed) < (size_of::<u32>() as i32) {
             // it doesn't fit in the current block so move to the next one
             self._flush();
@@ -88,7 +86,7 @@ impl LogManager {
         self.latest_lsn
     }
 
-    pub fn getLastSavedLSN(&self) -> u32 {
+    pub fn get_last_saved_lsn(&self) -> u32 {
         self.latest_saved_lsn
     }
 
@@ -111,24 +109,10 @@ impl LogManager {
 }
 
 fn _append_new_block(file_manager: &FileManager, log_file: &str, log_page: &mut Page) -> BlockId {
-    let block_id = file_manager.append(String::from(log_file)).unwrap();
+    let block_id = file_manager.append(log_file).unwrap();
     // Use the first four bytes as boundary, which is the offset of the most recently added log record
     // if the block_size is 400, then the boundary is 400 at the beginning
     log_page.set_int(0, file_manager.block_size() as u32);
     file_manager.write(&block_id, log_page).unwrap();
     block_id
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::{
-//         app::simple_db::SimpleDB,
-//         file::{block_id::BlockId, page::Page},
-//         logging::log_manager::LogManager,
-//     };
-//     #[test]
-//     fn test_log_manager() {
-//         let db = SimpleDB::new(String::from("./.generated/log_manager"), 400, 8);
-//         let mut lm = db.log_manager();
-//     }
-// }

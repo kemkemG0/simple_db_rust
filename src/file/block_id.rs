@@ -11,12 +11,15 @@ pub struct BlockId {
 }
 
 impl BlockId {
-    pub fn new(filename: String, blk_num: u64) -> BlockId {
-        BlockId { filename, blk_num }
+    pub fn new(filename: &str, blk_num: u64) -> BlockId {
+        BlockId {
+            filename: String::from(filename),
+            blk_num,
+        }
     }
 
-    pub fn filename(&self) -> String {
-        self.filename.clone()
+    pub fn filename(&self) -> &str {
+        self.filename.as_str()
     }
 
     pub fn number(&self) -> u64 {
@@ -28,7 +31,7 @@ impl BlockId {
         format!("{}", self).hash(&mut hasher);
         hasher.finish()
     }
-    pub fn isNull(&self) -> bool {
+    pub fn is_null(&self) -> bool {
         self.filename().is_empty()
     }
 }
@@ -65,21 +68,21 @@ mod tests {
 
     #[test]
     fn test_block_id() {
-        let block_id = BlockId::new("test".to_string(), 1);
+        let block_id = BlockId::new("test", 1);
         assert_eq!(block_id.filename(), "test");
         assert_eq!(block_id.number(), 1);
         assert_eq!(block_id.to_string(), "[file_name]: test, [block]: 1");
 
-        let block_id2 = BlockId::new("test".to_string(), 1);
+        let block_id2 = BlockId::new("test", 1);
         assert!(block_id == block_id2);
 
-        let block_id3 = BlockId::new("test".to_string(), 2);
+        let block_id3 = BlockId::new("test", 2);
         assert!(block_id != block_id3);
 
-        let block_id4 = BlockId::new("test2".to_string(), 1);
+        let block_id4 = BlockId::new("test2", 1);
         assert!(block_id != block_id4);
 
-        let block_id5 = BlockId::new("test2".to_string(), 2);
+        let block_id5 = BlockId::new("test2", 2);
         assert!(block_id != block_id5);
     }
 }

@@ -55,7 +55,7 @@ impl FileManager {
     }
 
     pub fn read(&self, blk: &BlockId, page: &mut Page) -> Result<(), io::Error> {
-        let file_io = self.getFile(blk.filename())?;
+        let file_io = self.get_file(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
         file_io.seek(io::SeekFrom::Start(offset))?;
@@ -67,7 +67,7 @@ impl FileManager {
         Ok(())
     }
     pub fn write(&self, blk: &BlockId, page: &mut Page) -> Result<(), io::Error> {
-        let file_io = self.getFile(blk.filename())?;
+        let file_io = self.get_file(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let offset = blk.number() * self.block_size as u64;
         file_io.seek(io::SeekFrom::Start(offset))?;
@@ -76,10 +76,10 @@ impl FileManager {
         Ok(())
     }
 
-    pub fn append(&self, filename: String) -> Result<BlockId, io::Error> {
-        let new_blk_num = self.length(filename.clone());
+    pub fn append(&self, filename: &str) -> Result<BlockId, io::Error> {
+        let new_blk_num = self.length(filename);
         let blk = BlockId::new(filename, new_blk_num);
-        let file_io = self.getFile(blk.filename())?;
+        let file_io = self.get_file(blk.filename())?;
         let mut file_io = file_io.lock().unwrap();
         let b = vec![0; self.block_size()];
         file_io.seek(io::SeekFrom::Start(blk.number() * self.block_size() as u64))?;
@@ -90,8 +90,8 @@ impl FileManager {
     pub fn is_new(&self) -> bool {
         self.is_new
     }
-    pub fn length(&self, file_name: String) -> u64 {
-        let file_io = self.getFile(file_name).unwrap();
+    pub fn length(&self, file_name: &str) -> u64 {
+        let file_io = self.get_file(file_name).unwrap();
         let file_io = file_io.lock().unwrap();
         let metadata = file_io.metadata().unwrap();
         metadata.len() / self.block_size as u64
@@ -100,7 +100,7 @@ impl FileManager {
         self.block_size
     }
 
-    fn getFile(&self, filename: String) -> Result<Arc<Mutex<fs::File>>, io::Error> {
+    fn get_file(&self, filename: &str) -> Result<Arc<Mutex<fs::File>>, io::Error> {
         let path = self.db_directory.join(filename);
         let mut open_files = self.open_files.lock().unwrap();
         if let Some(file) = open_files.get(&path) {
