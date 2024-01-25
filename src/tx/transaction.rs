@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    string::FromUtf8Error,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     buffer::buffer_manager::BufferManager,
@@ -10,6 +13,17 @@ pub struct Transaction {
     file_manager: Arc<FileManager>,
     log_manager: Arc<Mutex<LogManager>>,
     buffer_manager: Arc<Mutex<BufferManager>>,
+}
+
+pub enum TransactionError {
+    FromUtf8Error(FromUtf8Error),
+    General,
+}
+
+impl From<FromUtf8Error> for TransactionError {
+    fn from(e: FromUtf8Error) -> Self {
+        Self::FromUtf8Error(e)
+    }
 }
 
 impl Transaction {
