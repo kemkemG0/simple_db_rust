@@ -7,12 +7,10 @@ mod tests {
         sync::{Arc, Mutex},
     };
 
-    use crate::{
-        app::simple_db::SimpleDB, file::block_id::BlockId, transaction::transaction::Transaction,
-    };
+    use crate::{app::simple_db::SimpleDB, file::block_id::BlockId, tx::transaction::Transaction};
     #[test]
     fn test_transaction() {
-        let db = SimpleDB::new("./test_transaction", 4000, 8).unwrap();
+        let db = SimpleDB::new("./test_transaction", 400, 8).unwrap();
         let mut tx1 = Transaction::new(
             db.file_manager().clone(),
             db.log_manager().clone(),

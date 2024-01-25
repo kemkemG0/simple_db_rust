@@ -2,7 +2,7 @@ mod app;
 mod buffer;
 mod file;
 mod log;
-mod transaction;
+mod tx;
 
 fn main() {
     println!("Hello, world!");
