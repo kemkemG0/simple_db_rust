@@ -26,6 +26,9 @@ impl From<FromUtf8Error> for TransactionError {
     }
 }
 
+// Provide Transactin manage for clients.
+// Ensuring that all tranzaction are serializable,recoverable and in general satisfy ACID
+
 impl Transaction {
     pub fn new(
         file_manager: Arc<FileManager>,

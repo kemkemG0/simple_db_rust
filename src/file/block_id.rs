@@ -1,10 +1,11 @@
 use std::{
-    cmp::PartialEq,
+    cmp::{Eq, PartialEq},
     collections::hash_map::DefaultHasher,
     fmt,
     hash::{Hash, Hasher},
 };
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
+
 pub struct BlockId {
     filename: String,
     blk_num: u64,
@@ -26,11 +27,6 @@ impl BlockId {
         self.blk_num
     }
 
-    pub fn hash_code(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        format!("{}", self).hash(&mut hasher);
-        hasher.finish()
-    }
     pub fn is_null(&self) -> bool {
         self.filename().is_empty()
     }
@@ -46,9 +42,10 @@ impl fmt::Display for BlockId {
     }
 }
 
-impl PartialEq for BlockId {
-    fn eq(&self, other: &Self) -> bool {
-        self.filename == other.filename && self.blk_num == other.blk_num
+impl Hash for BlockId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.filename.hash(state);
+        self.blk_num.hash(state);
     }
 }
 
